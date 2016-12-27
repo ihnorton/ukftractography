@@ -1041,9 +1041,10 @@ void Tractography::Follow2T(const int thread_id,
   vec3_t m1, l1, m2, l2;
   m1 = fiberStartSeed.start_dir;
 
+  // Commented out to test using signal directly for s2acd computation
   // Track the fiber.
-  ukfMatrixType signal_tmp(_model->signal_dim(), 1);
-  ukfMatrixType state_tmp(_model->state_dim(), 1);
+  //ukfMatrixType signal_tmp(_model->signal_dim(), 1);
+  //ukfMatrixType state_tmp(_model->state_dim(), 1);
 
   int stepnr = 0;
 
@@ -1064,9 +1065,16 @@ void Tractography::Follow2T(const int thread_id,
 
     // after here state does not change until next step.
 
-    state_tmp.col(0) = state;
+    // Commented out to test using signal directly for s2acd computation
+    //state_tmp.col(0) = state;
+    //_model->H(state_tmp, signal_tmp); // signal_tmp is written, but only used to calculate ga
 
-    _model->H(state_tmp, signal_tmp); // signal_tmp is written, but only used to calculate ga
+    // Test using the signal directly
+    int signal_dim = _signal_data->GetSignalDimension();
+    ukfMatrixType signal_tmp(signal_dim * 2, 1);
+    ukfVectorType signal(signal_dim * 2);
+    _signal_data->Interp3Signal(x, signal); // here and in every step
+    signal_tmp.col(0) = signal;
 
     const ukfPrecisionType ga = s2adc(signal_tmp);
     const bool in_csf = (_noddi) ? ( ga < _ga_min ) : (ga < _ga_min || fa < _fa_min);
