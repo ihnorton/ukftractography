@@ -11,8 +11,13 @@
 #include "ukffiber.h"
 #include "seed.h"
 #include "ukf_types.h"
+#include "ukftractographylib_export.h"
 
 class ISignalData;
+class NrrdData;
+class vtkPolyData;
+class Tractography;
+UKFTRACTOGRAPHYLIB_EXPORT extern Tractography* tracto_blob;
 
 struct UKFSettings {
   bool record_fa;
@@ -55,7 +60,7 @@ struct UKFSettings {
  * \class Tractography
  * \brief This class performs the tractography and saves each step.
 */
-class Tractography
+class UKFTRACTOGRAPHYLIB_EXPORT Tractography
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -90,6 +95,12 @@ public:
                  const bool normalized_DWI_data, const bool output_normalized_DWI_data);
 
   /**
+   * Directly set the data volume pointers
+  */
+
+  bool SetData(void* data, void* mask, void* seed, bool normalizedDWIData);
+
+  /**
    * Creates the seeds and initilizes them by finding the tensor directions,
    * eigenvalues and Euler Angles. This also sets the initial state and
    * covariance.
@@ -122,6 +133,7 @@ public:
 
   void SetWriteBinary(bool wb) { this->_writeBinary = wb; }
   void SetWriteCompressed(bool wb) { this->_writeCompressed = wb; }
+  void SetOutputPolyData(vtkPolyData* pd) { this->_outputPolyData = pd; }
 private:
   /**
    * Calculate six tensor coefficients by solving B * d = log(s), where d are
@@ -258,6 +270,8 @@ private:
   bool _writeCompressed;
   // Threading control
   const int _num_threads;
+
+  vtkPolyData* _outputPolyData;
 };
 
 #endif  // TRACTOGRAPHY_H_

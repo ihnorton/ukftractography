@@ -435,6 +435,12 @@ int main(int argc, char **argv)
                                          tracts, tractsWithSecondTensor);
 
 
+  if (shadowExec)
+    {
+    tracto_blob = tract;
+    return 0;
+  }
+
   // if specified on command line, write out binary tract file
   tract->SetWriteBinary(!writeAsciiTracts);
   tract->SetWriteCompressed(!writeUncompressedTracts);
