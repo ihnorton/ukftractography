@@ -40,8 +40,8 @@ class vtkMRMLMarkupsFiducialNode;
 class vtkMRMLDiffusionWeightedVolumeNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_INTERACTIVEUKF_MODULE_LOGIC_EXPORT vtkSlicerInteractiveUKFLogic :
-  public vtkSlicerModuleLogic
+class VTK_SLICER_INTERACTIVEUKF_MODULE_LOGIC_EXPORT
+  vtkSlicerInteractiveUKFLogic : public vtkSlicerModuleLogic
 {
 public:
 
@@ -52,7 +52,8 @@ public:
   void SetInputVolumes(vtkMRMLDiffusionWeightedVolumeNode*,
                        vtkMRMLScalarVolumeNode*,
                        vtkMRMLScalarVolumeNode*);
-  void RunFromSeedPoints(vtkMRMLMarkupsFiducialNode*,
+  void RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode*,
+                         vtkMRMLMarkupsFiducialNode*,
                          vtkMRMLModelNode*);
 
 protected:
