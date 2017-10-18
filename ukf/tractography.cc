@@ -1065,7 +1065,7 @@ void Tractography::Follow2T(const int thread_id,
 
     Step2T(thread_id, x, m1, l1, m2, l2, fa, fa2, state, p, dNormMSE, trace, trace2);
     std::cout << "Step: " << stepnr << std::endl;
-    std::cout << state << std::endl
+    std::cout << state << std::endl;
     // Check if we should abort following this fiber. We abort if we reach the
     // CSF, if FA or GA get too small, if the curvature get's too high or if
     // the fiber gets too long.
