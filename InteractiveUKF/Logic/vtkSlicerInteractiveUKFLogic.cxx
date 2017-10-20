@@ -150,7 +150,10 @@ void vtkSlicerInteractiveUKFLogic
 
   Tractography* tract = dynamic_cast<Tractography*>(tracto_blob);
   if (!tract)
+    {
     std::cerr << "No tracto_blob!" << std::endl;
+    return;
+    }
 
   tract->SetData(nrrd, mask, seed, false /*normalizedDWIData*/);
 }

@@ -57,19 +57,30 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
    
     # Customize the widget
     cliw = self.cliWidget
-    for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel"]:
+    for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel", "Parameter set:", "Input Label Map"]:
       w = slicer.util.findChildren(widget=cliw, text=name)
       if len(w) > 0:
         cliw.layout().removeWidget(w[0])
         w[0].hide() 
 
+    for w in slicer.util.findChildren(widget=cliw, className="qMRMLNodeComboBox"):
+      if w.toolTip == "<p>Seeds for diffusion. If not specified, full brain tractography will be performed, and the algorithm will start from every voxel in the brain mask where the Generalized Anisotropy is bigger than 0.18</p>":
+        cliw.layout().removeWidget(w)
+        w.hide()
+      # get handles to important selectors
+      elif w.toolTip == "<p>Input diffusion weighted (DWI) volume</p>":
+        self.dwiSelector = w
+      elif w.toolTip == "<p>Output fiber tracts.</p>":  
+        self.fiberBundleSelector = w
+
     self.tabFrame.addTab(self.cliWidget, "Setup")
 
     # Interactor frame  
     self.interactFrame = qt.QFrame(self.parent)
-    self.interactFrame.setLayout(qt.QHBoxLayout())
+    self.interactFrame.setLayout(qt.QVBoxLayout())
     self.tabFrame.addTab(self.interactFrame, "Interact")
     
+    # selector widget and frame
     self.markupSelectorFrame = qt.QFrame(self.parent)
     self.markupSelectorFrame.setLayout(qt.QHBoxLayout())
     self.parent.layout().addWidget(self.markupSelectorFrame)
@@ -89,11 +100,25 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.markupSelector.setMRMLScene( slicer.mrmlScene )
     self.markupSelectorFrame.layout().addWidget(self.markupSelector)
 
+    # enable checkbox
+    self.enableCBFrame = qt.QFrame(self.parent)
+    self.enableCBFrame.setLayout(qt.QHBoxLayout())
+    self.parent.layout().addWidget(self.enableCBFrame)
+    
+    self.enableSeedingCB = qt.QCheckBox()
+    self.enableCBFrame.layout().addWidget(self.enableSeedingCB)
+
+    self.enableSeedingCBLabel = qt.QLabel("Enable interactive seeding")
+    self.enableCBFrame.layout().addWidget(self.enableSeedingCBLabel)
+    self.enableCBFrame.layout().addStretch(0)
+
     self.interactFrame.layout().addWidget(self.markupSelectorFrame)
+    self.interactFrame.layout().addWidget(self.enableCBFrame)
     self.interactFrame.layout().addStretch(0)
 
     self.tabFrame.connect('currentChanged(int)', self.onTabChanged)
-    self.logic = slicer.modules.interactiveukf.logic()
+    self.enableSeedingCB.connect('stateChanged(int)', self.onSeedingCBChanged)
+    self.ukflogic = slicer.modules.ukftractography.logic()
 
   def onTabChanged(self, index):
     if index != 1:
@@ -102,127 +127,12 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
 
     print self.logic
 
-  def onGrayscaleSelect(self, node):
-    self.grayscaleNode = node
-    self.applyButton.enabled = bool(self.grayscaleNode) and bool(self.labelNode)
+  def onSeedingCBChanged(self, state):
+    dwi = self.dwiSelector.currentNode()
+    markups = self.markupSelector.currentNode()
+    fbnode = self.fiberBundleSelector.currentNode()
+    self.logic.RunFromSeedPoints(dwi, markups, fbnode)
 
-  def onLabelSelect(self, node):
-    self.labelNode = node
-    self.applyButton.enabled = bool(self.grayscaleNode) and bool(self.labelNode)
-
-  def onApply(self):
-    """Calculate the label statistics
-    """
-
-    self.applyButton.text = "Working..."
-    # TODO: why doesn't processEvents alone make the label text change?
-    self.applyButton.repaint()
-    slicer.app.processEvents()
-    # resample the label to the space of the grayscale if needed
-    volumesLogic = slicer.modules.volumes.logic()
-    warnings = volumesLogic.CheckForLabelVolumeValidity(self.grayscaleNode, self.labelNode)
-    resampledLabelNode = None
-    if warnings != "":
-      if 'mismatch' in warnings:
-        resampledLabelNode = volumesLogic.ResampleVolumeToReferenceVolume(self.labelNode, self.grayscaleNode)
-        # resampledLabelNode does not have a display node, therefore the colorNode has to be passed to it
-        self.logic = InteractiveUKFLogic(self.grayscaleNode, resampledLabelNode, colorNode=self.labelNode.GetDisplayNode().GetColorNode(), nodeBaseName=self.labelNode.GetName())
-      else:
-        slicer.util.warnDisplay("Volumes do not have the same geometry.\n%s" % warnings, windowTitle="Label Statistics")
-        return
-    else:
-      self.logic = InteractiveUKFLogic(self.grayscaleNode, self.labelNode)
-    self.populateStats()
-    if resampledLabelNode:
-      slicer.mrmlScene.RemoveNode(resampledLabelNode)
-    self.chartFrame.enabled = True
-    self.exportToTableButton.enabled = True
-    self.applyButton.text = "Apply"
-
-  def onChart(self):
-    """chart the label statistics
-    """
-#    valueToPlot = self.chartOptions[self.chartOption.currentIndex]
-#    ignoreZero = self.chartIgnoreZero.checked
-#    self.logic.createStatsChart(self.labelNode,valueToPlot,ignoreZero)
-
-  def onExportToTable(self):
-    """write the label statistics to a table node
-    """
-    table = self.logic.exportToTable()
-
-    # Add table to the scene and show it
-    slicer.mrmlScene.AddNode(table)
-    slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutFourUpTableView)
-    slicer.app.applicationLogic().GetSelectionNode().SetReferenceActiveTableID(table.GetID())
-    slicer.app.applicationLogic().PropagateTableSelection()
-
-  def onSave(self):
-    """save the label statistics
-    """
-    if not self.fileDialog:
-      self.fileDialog = qt.QFileDialog(self.parent)
-      self.fileDialog.options = self.fileDialog.DontUseNativeDialog
-      self.fileDialog.acceptMode = self.fileDialog.AcceptSave
-      self.fileDialog.defaultSuffix = "csv"
-      self.fileDialog.setNameFilter("Comma Separated Values (*.csv)")
-      self.fileDialog.connect("fileSelected(QString)", self.onFileSelected)
-    self.fileDialog.show()
-
-  def onFileSelected(self,fileName):
-    self.logic.saveStats(fileName)
-
-  def populateStats(self):
-    if not self.logic:
-      return
-    displayNode = self.labelNode.GetDisplayNode()
-    colorNode = displayNode.GetColorNode()
-    lut = colorNode.GetLookupTable()
-    self.items = []
-    self.model = qt.QStandardItemModel()
-    self.view.setModel(self.model)
-    self.view.verticalHeader().visible = False
-    row = 0
-    for i in self.logic.labelStats["Labels"]:
-      col = 0
-      
-      color = qt.QColor()
-      rgb = lut.GetTableValue(i)
-      color.setRgb(rgb[0]*255,rgb[1]*255,rgb[2]*255)
-      item = qt.QStandardItem()
-      item.setData(color,qt.Qt.DecorationRole)
-      item.setToolTip(colorNode.GetColorName(i))
-      item.setEditable(False)
-      self.model.setItem(row,col,item)
-      self.items.append(item)
-      col += 1
-      
-      item = qt.QStandardItem()
-      item.setData(colorNode.GetColorName(i),qt.Qt.DisplayRole)
-      item.setEditable(False)
-      self.model.setItem(row,col,item)
-      self.items.append(item)
-      col += 1
-      
-      for k in self.logic.keys:
-        item = qt.QStandardItem()
-        # set data as float with Qt::DisplayRole
-        item.setData(float(self.logic.labelStats[i,k]),qt.Qt.DisplayRole)
-        item.setToolTip(colorNode.GetColorName(i))
-        item.setEditable(False)
-        self.model.setItem(row,col,item)
-        self.items.append(item)
-        col += 1
-      row += 1
-
-    self.view.setColumnWidth(0,30)
-    self.model.setHeaderData(0,1," ")
-    self.model.setHeaderData(1,1,"Type")
-    col = 2
-    for k in self.logic.keys:
-      self.view.setColumnWidth(col,15*len(k))
-      self.model.setHeaderData(col,1,k)
-      col += 1
 
 #
 # InteractiveUKFLogic
@@ -236,206 +146,8 @@ class InteractiveUKFLogic(ScriptedLoadableModuleLogic):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
-  def __init__(self, grayscaleNode, labelNode, colorNode=None, nodeBaseName=None, fileName=None):
-    #import numpy
-    
-    self.keys = ("Index", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
-    cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetSpacing())
-    ccPerCubicMM = 0.001
-
-    # TODO: progress and status updates
-    # this->InvokeEvent(vtkInteractiveUKFLogic::StartLabelStats, (void*)"start label stats")
-    
-    self.labelNode = labelNode
-    self.colorNode = colorNode
-
-    self.nodeBaseName = nodeBaseName
-    if not self.nodeBaseName:
-      self.nodeBaseName = labelNode.GetName() if labelNode.GetName() else 'Labels'
-
-    self.labelStats = {}
-    self.labelStats['Labels'] = []
-
-    stataccum = vtk.vtkImageAccumulate()
-    stataccum.SetInputConnection(labelNode.GetImageDataConnection())
-    stataccum.Update()
-    lo = int(stataccum.GetMin()[0])
-    hi = int(stataccum.GetMax()[0])
-
-    for i in xrange(lo,hi+1):
-
-      # this->SetProgress((float)i/hi);
-      # std::string event_message = "Label "; std::stringstream s; s << i; event_message.append(s.str());
-      # this->InvokeEvent(vtkInteractiveUKFLogic::LabelStatsOuterLoop, (void*)event_message.c_str());
-
-      # logic copied from slicer3 InteractiveUKF
-      # to create the binary volume of the label
-      # //logic copied from slicer2 InteractiveUKF MaskStat
-      # // create the binary volume of the label
-      thresholder = vtk.vtkImageThreshold()
-      thresholder.SetInputConnection(labelNode.GetImageDataConnection())
-      thresholder.SetInValue(1)
-      thresholder.SetOutValue(0)
-      thresholder.ReplaceOutOn()
-      thresholder.ThresholdBetween(i,i)
-      thresholder.SetOutputScalarType(grayscaleNode.GetImageData().GetScalarType())
-      thresholder.Update()
-
-      # this.InvokeEvent(vtkInteractiveUKFLogic::LabelStatsInnerLoop, (void*)"0.25");
-
-      #  use vtk's statistics class with the binary labelmap as a stencil
-      stencil = vtk.vtkImageToImageStencil()
-      stencil.SetInputConnection(thresholder.GetOutputPort())
-      stencil.ThresholdBetween(1, 1)
-
-      # this.InvokeEvent(vtkInteractiveUKFLogic::LabelStatsInnerLoop, (void*)"0.5")
-
-      stat1 = vtk.vtkImageAccumulate()
-      stat1.SetInputConnection(grayscaleNode.GetImageDataConnection())
-      stencil.Update()
-      stat1.SetStencilData(stencil.GetOutput())
-
-      stat1.Update()
-
-      # this.InvokeEvent(vtkInteractiveUKFLogic::LabelStatsInnerLoop, (void*)"0.75")
-
-      if stat1.GetVoxelCount() > 0:
-        # add an entry to the LabelStats list
-        self.labelStats["Labels"].append(i)
-        self.labelStats[i,"Index"] = i
-        self.labelStats[i,"Count"] = stat1.GetVoxelCount()
-        self.labelStats[i,"Volume mm^3"] = self.labelStats[i,"Count"] * cubicMMPerVoxel
-        self.labelStats[i,"Volume cc"] = self.labelStats[i,"Volume mm^3"] * ccPerCubicMM
-        self.labelStats[i,"Min"] = stat1.GetMin()[0]
-        self.labelStats[i,"Max"] = stat1.GetMax()[0]
-        self.labelStats[i,"Mean"] = stat1.GetMean()[0]
-        self.labelStats[i,"StdDev"] = stat1.GetStandardDeviation()[0]
-
-        # this.InvokeEvent(vtkInteractiveUKFLogic::LabelStatsInnerLoop, (void*)"1")
-
-    # this.InvokeEvent(vtkInteractiveUKFLogic::EndLabelStats, (void*)"end label stats")
-
-  def getColorNode(self):
-    """Returns the color node corresponding to the labelmap. If a color node is explicitly
-    specified then that will be used. Otherwise the color node is retrieved from the display node
-    of the labelmap node
-    """
-    if self.colorNode:
-      return self.colorNode
-    displayNode = self.labelNode.GetDisplayNode()
-    if not displayNode:
-      return None
-    return displayNode.GetColorNode()
-
-  def createStatsChart(self, labelNode, valueToPlot, ignoreZero=False):
-    """Make a MRML chart of the current stats
-    """
-    layoutNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLLayoutNode')
-    layoutNode.SetViewArrangement(slicer.vtkMRMLLayoutNode.SlicerLayoutConventionalQuantitativeView)
-
-    chartViewNode = slicer.mrmlScene.GetFirstNodeByClass('vtkMRMLChartViewNode')
-
-    arrayNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLDoubleArrayNode())
-    array = arrayNode.GetArray()
-    samples = len(self.labelStats["Labels"])
-    tuples = samples
-    if ignoreZero and self.labelStats["Labels"].__contains__(0):
-      tuples -= 1
-    array.SetNumberOfTuples(tuples)
-    tuple = 0
-    for i in xrange(samples):
-        index = self.labelStats["Labels"][i]
-        if not (ignoreZero and index == 0):
-          array.SetComponent(tuple, 0, index)
-          array.SetComponent(tuple, 1, self.labelStats[index,valueToPlot])
-          array.SetComponent(tuple, 2, 0)
-          tuple += 1
-
-    chartNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLChartNode())
-
-    state = chartNode.StartModify()
-
-    chartNode.AddArray(valueToPlot, arrayNode.GetID())
-
-    chartViewNode.SetChartNodeID(chartNode.GetID())
-
-    chartNode.SetProperty('default', 'title', 'Label Statistics')
-    chartNode.SetProperty('default', 'xAxisLabel', 'Label')
-    chartNode.SetProperty('default', 'yAxisLabel', valueToPlot)
-    chartNode.SetProperty('default', 'type', 'Bar');
-    chartNode.SetProperty('default', 'xAxisType', 'categorical')
-    chartNode.SetProperty('default', 'showLegend', 'off')
-
-    # series level properties
-    if labelNode.GetDisplayNode() is not None and self.getColorNode() is not None:
-      chartNode.SetProperty(valueToPlot, 'lookupTable', self.getColorNode().GetID());
-
-    chartNode.EndModify(state)
-
-  def exportToTable(self):
-    """
-    Export statistics to table node
-    """
-
-    colorNode = self.getColorNode()
-
-    table = slicer.vtkMRMLTableNode()
-    tableWasModified = table.StartModify()
-
-    table.SetName(slicer.mrmlScene.GenerateUniqueName(self.nodeBaseName + ' statistics'))
-
-    # Define table columns
-    if colorNode:
-      col = table.AddColumn()
-      col.SetName("Type")
-    for k in self.keys:
-      col = table.AddColumn()
-      col.SetName(k)
-    for i in self.labelStats["Labels"]:
-      rowIndex = table.AddEmptyRow()
-      columnIndex = 0
-      if colorNode:
-        table.SetCellText(rowIndex, columnIndex, colorNode.GetColorName(i))
-        columnIndex += 1
-      # Add other values
-      for k in self.keys:
-        table.SetCellText(rowIndex, columnIndex, str(self.labelStats[i, k]))
-        columnIndex += 1
-
-    table.EndModify(tableWasModified)
-    return table
-
-  def statsAsCSV(self):
-    """
-    print comma separated value file with header keys in quotes
-    """
-    
-    colorNode = self.getColorNode()
-    
-    csv = ""
-    header = ""
-    if colorNode:
-      header += "\"%s\"" % "Type" + ","
-    for k in self.keys[:-1]:
-      header += "\"%s\"" % k + ","
-    header += "\"%s\"" % self.keys[-1] + "\n"
-    csv = header
-    for i in self.labelStats["Labels"]:
-      line = ""
-      if colorNode:
-        line += colorNode.GetColorName(i) + ","
-      for k in self.keys[:-1]:
-        line += str(self.labelStats[i,k]) + ","
-      line += str(self.labelStats[i,self.keys[-1]]) + "\n"
-      csv += line
-    return csv
-
-  def saveStats(self,fileName):
-    fp = open(fileName, "w")
-    fp.write(self.statsAsCSV())
-    fp.close()
-
-
+  def __init__(self):
+    pass
 
 class InteractiveUKFTest(ScriptedLoadableModuleTest):
   """
