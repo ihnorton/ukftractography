@@ -18,35 +18,35 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerInteractiveUKFFooBarWidget_h
-#define __qSlicerInteractiveUKFFooBarWidget_h
+#ifndef __qSlicerInteractiveUKFQWidget_h
+#define __qSlicerInteractiveUKFQWidget_h
 
 // Qt includes
 #include <QWidget>
 
-// FooBar Widgets includes
+// Q Widgets includes
 #include "qSlicerInteractiveUKFModuleWidgetsExport.h"
 
-class qSlicerInteractiveUKFFooBarWidgetPrivate;
+class qSlicerInteractiveUKFQWidgetPrivate;
 
 /// \ingroup Slicer_QtModules_InteractiveUKF
-class Q_SLICER_MODULE_INTERACTIVEUKF_WIDGETS_EXPORT qSlicerInteractiveUKFFooBarWidget
+class Q_SLICER_MODULE_INTERACTIVEUKF_WIDGETS_EXPORT qSlicerInteractiveUKFQWidget
   : public QWidget
 {
   Q_OBJECT
 public:
   typedef QWidget Superclass;
-  qSlicerInteractiveUKFFooBarWidget(QWidget *parent=0);
-  virtual ~qSlicerInteractiveUKFFooBarWidget();
+  qSlicerInteractiveUKFQWidget(QWidget *parent=0);
+  virtual ~qSlicerInteractiveUKFQWidget();
 
 protected slots:
 
 protected:
-  QScopedPointer<qSlicerInteractiveUKFFooBarWidgetPrivate> d_ptr;
+  QScopedPointer<qSlicerInteractiveUKFQWidgetPrivate> d_ptr;
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerInteractiveUKFFooBarWidget);
-  Q_DISABLE_COPY(qSlicerInteractiveUKFFooBarWidget);
+  Q_DECLARE_PRIVATE(qSlicerInteractiveUKFQWidget);
+  Q_DISABLE_COPY(qSlicerInteractiveUKFQWidget);
 };
 
 #endif

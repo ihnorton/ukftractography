@@ -18,55 +18,55 @@
 
 ==============================================================================*/
 
-// FooBar Widgets includes
-#include "qSlicerInteractiveUKFFooBarWidget.h"
-#include "ui_qSlicerInteractiveUKFFooBarWidget.h"
+// Q Widgets includes
+#include "qSlicerInteractiveUKFQWidget.h"
+#include "ui_qSlicerInteractiveUKFQWidget.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_InteractiveUKF
-class qSlicerInteractiveUKFFooBarWidgetPrivate
-  : public Ui_qSlicerInteractiveUKFFooBarWidget
+class qSlicerInteractiveUKFQWidgetPrivate
+  : public Ui_qSlicerInteractiveUKFQWidget
 {
-  Q_DECLARE_PUBLIC(qSlicerInteractiveUKFFooBarWidget);
+  Q_DECLARE_PUBLIC(qSlicerInteractiveUKFQWidget);
 protected:
-  qSlicerInteractiveUKFFooBarWidget* const q_ptr;
+  qSlicerInteractiveUKFQWidget* const q_ptr;
 
 public:
-  qSlicerInteractiveUKFFooBarWidgetPrivate(
-    qSlicerInteractiveUKFFooBarWidget& object);
-  virtual void setupUi(qSlicerInteractiveUKFFooBarWidget*);
+  qSlicerInteractiveUKFQWidgetPrivate(
+    qSlicerInteractiveUKFQWidget& object);
+  virtual void setupUi(qSlicerInteractiveUKFQWidget*);
 };
 
 // --------------------------------------------------------------------------
-qSlicerInteractiveUKFFooBarWidgetPrivate
-::qSlicerInteractiveUKFFooBarWidgetPrivate(
-  qSlicerInteractiveUKFFooBarWidget& object)
+qSlicerInteractiveUKFQWidgetPrivate
+::qSlicerInteractiveUKFQWidgetPrivate(
+  qSlicerInteractiveUKFQWidget& object)
   : q_ptr(&object)
 {
 }
 
 // --------------------------------------------------------------------------
-void qSlicerInteractiveUKFFooBarWidgetPrivate
-::setupUi(qSlicerInteractiveUKFFooBarWidget* widget)
+void qSlicerInteractiveUKFQWidgetPrivate
+::setupUi(qSlicerInteractiveUKFQWidget* widget)
 {
-  this->Ui_qSlicerInteractiveUKFFooBarWidget::setupUi(widget);
+  this->Ui_qSlicerInteractiveUKFQWidget::setupUi(widget);
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerInteractiveUKFFooBarWidget methods
+// qSlicerInteractiveUKFQWidget methods
 
 //-----------------------------------------------------------------------------
-qSlicerInteractiveUKFFooBarWidget
-::qSlicerInteractiveUKFFooBarWidget(QWidget* parentWidget)
+qSlicerInteractiveUKFQWidget
+::qSlicerInteractiveUKFQWidget(QWidget* parentWidget)
   : Superclass( parentWidget )
-  , d_ptr( new qSlicerInteractiveUKFFooBarWidgetPrivate(*this) )
+  , d_ptr( new qSlicerInteractiveUKFQWidgetPrivate(*this) )
 {
-  Q_D(qSlicerInteractiveUKFFooBarWidget);
+  Q_D(qSlicerInteractiveUKFQWidget);
   d->setupUi(this);
 }
 
 //-----------------------------------------------------------------------------
-qSlicerInteractiveUKFFooBarWidget
-::~qSlicerInteractiveUKFFooBarWidget()
+qSlicerInteractiveUKFQWidget
+::~qSlicerInteractiveUKFQWidget()
 {
 }
