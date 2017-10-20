@@ -157,7 +157,8 @@ void vtkSlicerInteractiveUKFLogic
 
 //---------------------------------------------------------------------------
 void vtkSlicerInteractiveUKFLogic
-::RunFromSeedPoints(vtkMRMLMarkupsFiducialNode* markupNode,
+::RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode* dwiNode,
+                    vtkMRMLMarkupsFiducialNode* markupNode,
                     vtkMRMLModelNode* fbNode)
 {
   assert(fbNode->IsA("vtkMRMLFiberBundleNode"));
