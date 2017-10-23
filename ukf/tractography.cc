@@ -216,7 +216,11 @@ void Tractography::Init(std::vector<SeedPointInfo>& seed_infos)
     itkGenericExceptionMacro(<< "No label data!");
     }
 
-  if( !_full_brain )
+  if(!_ext_seeds.empty())
+    {
+    seeds = _ext_seeds;
+    }
+  else if(!_full_brain)
     {
     _signal_data->GetSeeds(_labels, seeds);
     }
@@ -556,6 +560,11 @@ bool Tractography::Run()
                                                                  // branch attached
 
   Init(primary_seed_infos);
+  if (primary_seed_infos.size() < 1)
+    {
+    std::cerr << "No valid seed points available!" << std::endl;
+    return false;
+    }
 
   const int num_of_threads = std::min(_num_threads, static_cast<int>(primary_seed_infos.size() ) );
   // const int num_of_threads = 8;

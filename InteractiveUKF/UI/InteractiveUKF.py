@@ -31,6 +31,16 @@ Supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. See http://www.
 # InteractiveUKFWidget
 #
 
+class It():
+  def __init__(self, node):
+    self.node = node
+
+  def __enter__(self):
+    return self.node
+
+  def __exit__(self, type, value, traceback):
+    return False
+
 class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -54,7 +64,8 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.parent.layout().addWidget(self.tabFrame)
     
     self.cliWidget = slicer.modules.ukftractography.createNewWidgetRepresentation()
-   
+    self.cliWidget.setMRMLScene(slicer.mrmlScene)
+
     # Customize the widget
     cliw = self.cliWidget
     for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel", "Parameter set:", "Input Label Map"]:
@@ -67,12 +78,14 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       if w.toolTip == "<p>Seeds for diffusion. If not specified, full brain tractography will be performed, and the algorithm will start from every voxel in the brain mask where the Generalized Anisotropy is bigger than 0.18</p>":
         cliw.layout().removeWidget(w)
         w.hide()
-      # get handles to important selectors
-      elif w.toolTip == "<p>Input diffusion weighted (DWI) volume</p>":
-        self.dwiSelector = w
-      elif w.toolTip == "<p>Output fiber tracts.</p>":  
-        self.fiberBundleSelector = w
 
+  
+    # get handles to important selectors
+    self.dwiSelector = slicer.util.findChild(cliw, "dwiFile")
+    self.fiberBundleSelector = slicer.util.findChild(cliw, "tracts")
+    self.maskSelector = slicer.util.findChild(cliw, "maskFile")
+
+    # add widget to tab frame
     self.tabFrame.addTab(self.cliWidget, "Setup")
 
     # Interactor frame  
@@ -89,16 +102,18 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.markupSelectorLabel.setToolTip( "Select the markup node for interactive seeding.")
     self.markupSelectorFrame.layout().addWidget(self.markupSelectorLabel)
 
-    self.markupSelector = slicer.qMRMLNodeComboBox(self.parent)
-    self.markupSelector.nodeTypes = ["vtkMRMLMarkupsFiducialNode"]
-    self.markupSelector.selectNodeUponCreation = False
-    self.markupSelector.addEnabled = False
-    self.markupSelector.removeEnabled = False
-    self.markupSelector.noneEnabled = True
-    self.markupSelector.showHidden = False
-    self.markupSelector.showChildNodeTypes = False
-    self.markupSelector.setMRMLScene( slicer.mrmlScene )
-    self.markupSelectorFrame.layout().addWidget(self.markupSelector)
+    with It(slicer.qMRMLNodeComboBox(self.parent)) as w:
+      w.nodeTypes = ["vtkMRMLMarkupsFiducialNode"]
+      w.selectNodeUponCreation = False
+      w.addEnabled = False
+      w.removeEnabled = False
+      w.noneEnabled = True
+      w.showHidden = False
+      w.showChildNodeTypes = False
+      w.setMRMLScene(slicer.mrmlScene)
+
+      self.markupSelectorFrame.layout().addWidget(w)
+      self.markupSelector = w
 
     # enable checkbox
     self.enableCBFrame = qt.QFrame(self.parent)
@@ -118,19 +133,38 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
 
     self.tabFrame.connect('currentChanged(int)', self.onTabChanged)
     self.enableSeedingCB.connect('stateChanged(int)', self.onSeedingCBChanged)
-    self.ukflogic = slicer.modules.ukftractography.logic()
+    self.logic = slicer.vtkSlicerInteractiveUKFLogic()
 
   def onTabChanged(self, index):
+    print "onTabChanged"
     if index != 1:
       return
-    print "onTabChanged"
 
+    dwi = self.dwiSelector.currentNode()
+    fbnode = self.fiberBundleSelector.currentNode()
+    mask = self.maskSelector.currentNode()
+  
+    # disable interaction and return if no nodes selected
+    if (dwi == None or fbnode == None):
+      self.interactFrame.enabled = 0
+      return
+
+    cliNode = self.cliWidget.currentCommandLineModuleNode()
+    print cliNode
     print self.logic
+   
+    self.cliWidget.apply(1) # 1: run synchronously
+    self.interactFrame.enabled = 1
+    self.logic.SetInputVolumes(dwi, mask, None)
 
   def onSeedingCBChanged(self, state):
     dwi = self.dwiSelector.currentNode()
     markups = self.markupSelector.currentNode()
     fbnode = self.fiberBundleSelector.currentNode()
+
+    if state == 0 or markups == None:
+      return
+
     self.logic.RunFromSeedPoints(dwi, markups, fbnode)
 
 

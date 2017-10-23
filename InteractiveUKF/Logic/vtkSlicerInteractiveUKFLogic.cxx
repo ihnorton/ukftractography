@@ -30,6 +30,8 @@
 #include <vtkIntArray.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
+#include <vtkTransform.h>
+#include <vtkMatrix4x4.h>
 
 // Teem includes
 #include "teem/nrrd.h"
@@ -161,13 +163,17 @@ void vtkSlicerInteractiveUKFLogic
 //---------------------------------------------------------------------------
 void vtkSlicerInteractiveUKFLogic
 ::RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode* dwiNode,
-                    vtkMRMLMarkupsFiducialNode* markupNode,
+                    vtkMRMLMarkupsFiducialNode* markupsNode,
                     vtkMRMLModelNode* fbNode)
 {
   assert(fbNode->IsA("vtkMRMLFiberBundleNode"));
 
   Tractography* tract = dynamic_cast<Tractography*>(tracto_blob);
-  assert(tract);
+  if (!tract)
+    {
+    std::cerr << "No tracto_blob!" << std::endl;
+    return;
+    }
 
   vtkPolyData* pd = fbNode->GetPolyData();
   if (pd == NULL)
@@ -176,6 +182,20 @@ void vtkSlicerInteractiveUKFLogic
     fbNode->SetAndObservePolyData(pd);
     pd->Delete();
     }
+
+  vtkNew<vtkTransform> RASxfmIJK;
+  vtkNew<vtkMatrix4x4> RAStoIJK;
+  dwiNode->GetRASToIJKMatrix(RAStoIJK.GetPointer());
+  RASxfmIJK->SetMatrix(RAStoIJK.GetPointer());
+  stdVec_t seeds;
+  for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
+    {
+    vec3_t pos_in, pos_out;
+    markupsNode->GetMarkupPoint(0,i,pos_in.data());
+    RASxfmIJK->TransformPoint(pos_in.data(), pos_out.data());
+    seeds.push_back(pos_out);
+    }
+  tract->SetSeeds(seeds);
 
   tract->SetOutputPolyData(pd);
   tract->Run();

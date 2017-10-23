@@ -101,6 +101,15 @@ public:
   bool SetData(void* data, void* mask, void* seed, bool normalizedDWIData);
 
   /**
+   * Directly set the seed locations
+  */
+
+  void SetSeeds(stdVec_t seeds)
+    {
+    _ext_seeds = seeds;
+    }
+
+  /**
    * Creates the seeds and initilizes them by finding the tensor directions,
    * eigenvalues and Euler Angles. This also sets the initial state and
    * covariance.
@@ -265,6 +274,7 @@ private:
   const ukfPrecisionType           _stepLength;
   const int                 _steps_per_record;
   const std::vector<int> _labels;
+  stdVec_t _ext_seeds;
 
   bool _writeBinary;
   bool _writeCompressed;
