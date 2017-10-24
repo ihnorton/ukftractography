@@ -27,10 +27,12 @@ add_custom_command(OUTPUT ${UKF_GITVER_FILE}
                    DEPENDS _GEN_GITVER)
 
 #-----------------------------------------------------------------------------
+message(info "BD: ${CMAKE_CURRENT_BINARY_DIR}")
 set(MODULE_INCLUDE_DIRECTORIES
   ${Teem_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../common
+  ${CMAKE_CURRENT_BINARY_DIR}/../ukf
   )
 
 set(MODULE_SRCS
@@ -78,7 +80,7 @@ SEMMacroBuildCLI(
   TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES}
   INCLUDE_DIRECTORIES ${MODULE_INCLUDE_DIRECTORIES}
   ADDITIONAL_SRCS ${MODULE_SRCS}
-  EXECUTABLE_ONLY
+  #EXECUTABLE_ONLY
   )
 
 #-----------------------------------------------------------------------------

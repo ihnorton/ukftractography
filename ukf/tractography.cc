@@ -24,6 +24,8 @@
 // TODO implement this switch
 #include "config.h"
 
+Tractography* tracto_blob;
+
 // Local forward declaration of callback type.
 ITK_THREAD_RETURN_TYPE ThreadCallback(void *arg);
 
@@ -75,7 +77,8 @@ Tractography::Tractography(FilterModel *model, model_type filter_model_type,
   _labels(labels),
   _writeBinary(true),
   _writeCompressed(true),
-  _num_threads(num_threads)
+  _num_threads(num_threads),
+  _outputPolyData(NULL)
 {
   if( _cos_theta_max != ukfZero && _cos_theta_max <= _cos_theta_min )
     {
@@ -143,6 +146,30 @@ Tractography::~Tractography()
     }
 }
 
+bool Tractography::SetData(void* data, void* mask, void* seed,
+                           bool normalizedDWIData)
+{
+  if (!data || !mask)
+    {
+    std::cout << "Invalid input Nrrd pointers!" << std::endl;
+    return true;
+    }
+
+  if (!seed)
+    {
+    _full_brain = true;
+    }
+
+  _signal_data = new NrrdData(_sigma_signal, _sigma_mask);
+  _signal_data->SetData((Nrrd*)data, (Nrrd*)mask, (Nrrd*)seed, normalizedDWIData);
+
+  _model->set_signal_data(_signal_data);
+
+  _model->set_signal_dim(_signal_data->GetSignalDimension() * 2);
+
+  return false;
+}
+
 bool Tractography::LoadFiles(const std::string& data_file,
                              const std::string& seed_file,
                              const std::string& mask_file,
@@ -164,11 +191,6 @@ bool Tractography::LoadFiles(const std::string& data_file,
     _signal_data = NULL;
     return true;
     }
-
-  _model->set_signal_data(_signal_data);
-
-  _model->set_signal_dim(_signal_data->GetSignalDimension() * 2);
-
   return false;
 }
 
@@ -186,7 +208,11 @@ void Tractography::Init(std::vector<SeedPointInfo>& seed_infos)
     itkGenericExceptionMacro(<< "No label data!");
     }
 
-  if( !_full_brain )
+  if(!_ext_seeds.empty())
+    {
+    seeds = _ext_seeds;
+    }
+  else if(!_full_brain)
     {
     _signal_data->GetSeeds(_labels, seeds);
     }
@@ -526,6 +552,11 @@ bool Tractography::Run()
                                                                  // branch attached
 
   Init(primary_seed_infos);
+  if (primary_seed_infos.size() < 1)
+    {
+    std::cerr << "No valid seed points available!" << std::endl;
+    return false;
+    }
 
   const int num_of_threads = std::min(_num_threads, static_cast<int>(primary_seed_infos.size() ) );
   // const int num_of_threads = 8;
@@ -631,12 +662,24 @@ bool Tractography::Run()
 
   // Write the fiber data to the output vtk file.
   VtkWriter writer(_signal_data, _filter_model_type, _record_tensors);
-  // possibly write binary VTK file.
-  writer.SetWriteBinary(this->_writeBinary);
-  writer.SetWriteCompressed(this->_writeCompressed);
-
   writer.set_transform_position(_transform_position);
-  const int writeStatus = writer.Write(_output_file, _output_file_with_second_tensor, fibers, _record_state, _store_glyphs, _noddi);
+
+  int writeStatus = EXIT_SUCCESS;
+  if (this->_outputPolyData != NULL)
+    {
+    writer.PopulateFibersAndTensors(this->_outputPolyData, fibers);
+    this->_outputPolyData->Modified();
+    }
+  else
+    {
+    // possibly write binary VTK file.
+    writer.SetWriteBinary(this->_writeBinary);
+    writer.SetWriteCompressed(this->_writeCompressed);
+
+    writeStatus = writer.Write(_output_file, _output_file_with_second_tensor,
+                                         fibers, _record_state, _store_glyphs, _noddi);
+    }
+
   // Clear up the kalman filters
   for( size_t i = 0; i < _ukf.size(); i++ )
     {

@@ -29,7 +29,6 @@ unsigned int countH=0;
 #include "tractography.h"
 #include "UKFTractographyCLP.h"
 
-
 static const bool verbose = true;
 
 void setAndTell(ukfPrecisionType & x, const ukfPrecisionType y, const std::string & name)
@@ -407,6 +406,12 @@ int main(int argc, char **argv)
 
                                          actuallNumThreadsUsed
                                         ) ;
+
+  if (shadowExec)
+    {
+    tracto_blob = tract;
+    return 0;
+  }
 
   // if specified on command line, write out binary tract file
   tract->SetWriteBinary(!writeAsciiTracts);

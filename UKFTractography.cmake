@@ -92,6 +92,8 @@ if(NOT ${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION)
   add_subdirectory(vtkFilter)
 endif()
 
+add_subdirectory(InteractiveUKF)
+
 #-----------------------------------------------------------------------------
 if(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION)
   include(${Slicer_EXTENSION_CPACK})
