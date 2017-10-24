@@ -150,22 +150,33 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       return
 
     cliNode = self.cliWidget.currentCommandLineModuleNode()
-    print cliNode
-    print self.logic
+    #print cliNode
+    #print self.logic
    
     self.cliWidget.apply(1) # 1: run synchronously
     self.interactFrame.enabled = 1
     self.logic.SetInputVolumes(dwi, mask, None)
 
-  def onSeedingCBChanged(self, state):
-    dwi = self.dwiSelector.currentNode()
-    markups = self.markupSelector.currentNode()
-    fbnode = self.fiberBundleSelector.currentNode()
+  def onMarkupsChanged(self, markupNode, event):
+    self.runSeeding(markupNode, 0)
 
+  def onSeedingCBChanged(self, state):
+    markups = self.markupSelector.currentNode()
     if state == 0 or markups == None:
+      markups.RemoveObserver(self.onMarkupsChanged)
       return
 
-    self.logic.RunFromSeedPoints(dwi, markups, fbnode)
+    markups.AddObserver(slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
+                        self.onMarkupsChanged)
+
+  def runSeeding(self, markupNode, pointId):
+    dwi = self.dwiSelector.currentNode()
+    fbnode = self.fiberBundleSelector.currentNode()
+
+    if markupNode == None:
+      return
+
+    self.logic.RunFromSeedPoints(dwi, fbnode, markupNode, pointId)
 
 
 #

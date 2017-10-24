@@ -53,8 +53,9 @@ public:
                        vtkMRMLScalarVolumeNode*,
                        vtkMRMLScalarVolumeNode*);
   void RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode*,
+                         vtkMRMLModelNode*,
                          vtkMRMLMarkupsFiducialNode*,
-                         vtkMRMLModelNode*);
+                         int pointId);
 
 protected:
   vtkSlicerInteractiveUKFLogic();

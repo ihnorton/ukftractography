@@ -163,8 +163,9 @@ void vtkSlicerInteractiveUKFLogic
 //---------------------------------------------------------------------------
 void vtkSlicerInteractiveUKFLogic
 ::RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode* dwiNode,
+                    vtkMRMLModelNode* fbNode,
                     vtkMRMLMarkupsFiducialNode* markupsNode,
-                    vtkMRMLModelNode* fbNode)
+                    int pointId)
 {
   assert(fbNode->IsA("vtkMRMLFiberBundleNode"));
 
@@ -188,15 +189,21 @@ void vtkSlicerInteractiveUKFLogic
   dwiNode->GetRASToIJKMatrix(RAStoIJK.GetPointer());
   RASxfmIJK->SetMatrix(RAStoIJK.GetPointer());
   stdVec_t seeds;
-  for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
+
+  //for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
     {
     vec3_t pos_in, pos_out;
-    markupsNode->GetMarkupPoint(0,i,pos_in.data());
+    // TODO check
+    markupsNode->GetMarkupPoint(0,pointId,pos_in.data());
     RASxfmIJK->TransformPoint(pos_in.data(), pos_out.data());
     seeds.push_back(pos_out);
     }
+
   tract->SetSeeds(seeds);
 
   tract->SetOutputPolyData(pd);
   tract->Run();
+
+  pd->Modified();
+  fbNode->Modified();
 }
