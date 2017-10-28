@@ -66,19 +66,30 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.cliWidget = slicer.modules.ukftractography.createNewWidgetRepresentation()
     self.cliWidget.setMRMLScene(slicer.mrmlScene)
 
+    ######################
     # Customize the widget
+    #
+
+    # labels and other anonymous UI elements
     cliw = self.cliWidget
-    for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel", "Parameter set:", "Input Label Map"]:
+    for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel", "Parameter set:",
+                 "Input Label Map", "ROI label to use for seeding"]:
       w = slicer.util.findChildren(widget=cliw, text=name)
       if len(w) > 0:
-        cliw.layout().removeWidget(w[0])
-        w[0].hide() 
+        w = w[0]
+        cliw.layout().removeWidget(w)
+        w.hide() 
 
-    for w in slicer.util.findChildren(widget=cliw, className="qMRMLNodeComboBox"):
-      if w.toolTip == "<p>Seeds for diffusion. If not specified, full brain tractography will be performed, and the algorithm will start from every voxel in the brain mask where the Generalized Anisotropy is bigger than 0.18</p>":
+    # named selector widgets correspond to CLI argument name
+    for name in ["labels", "seedsFile"]:
+      w = slicer.util.findChild(widget=cliw, name=name)
+      if w:
         cliw.layout().removeWidget(w)
         w.hide()
-
+    
+    #
+    # Finished customizing
+    ######################
   
     # get handles to important selectors
     self.dwiSelector = slicer.util.findChild(cliw, "dwiFile")
