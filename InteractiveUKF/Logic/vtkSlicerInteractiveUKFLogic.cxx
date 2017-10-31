@@ -190,12 +190,13 @@ void vtkSlicerInteractiveUKFLogic
   RASxfmIJK->SetMatrix(RAStoIJK.GetPointer());
   stdVec_t seeds;
 
+  // TODO loop all points
   //for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
     {
     vec3_t pos_in, pos_out;
-    // TODO check
     markupsNode->GetMarkupPoint(0,pointId,pos_in.data());
     RASxfmIJK->TransformPoint(pos_in.data(), pos_out.data());
+    pos_out = vec3_t(pos_out[2], pos_out[1], pos_out[0]); // axis order for nrrd
     seeds.push_back(pos_out);
     }
 

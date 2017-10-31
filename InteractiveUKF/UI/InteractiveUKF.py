@@ -161,8 +161,6 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       return
 
     cliNode = self.cliWidget.currentCommandLineModuleNode()
-    #print cliNode
-    #print self.logic
    
     self.cliWidget.apply(1) # 1: run synchronously
     self.interactFrame.enabled = 1
