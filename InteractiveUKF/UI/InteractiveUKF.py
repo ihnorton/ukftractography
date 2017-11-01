@@ -86,11 +86,15 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       if w:
         cliw.layout().removeWidget(w)
         w.hide()
-    
+
     #
     # Finished customizing
     ######################
-  
+
+    # Change default output step length from 0.9 to 2.0
+    with slicer.util.findChild(cliw, name="recordLength") as w:
+      w.setValue(2)
+
     # get handles to important selectors
     self.dwiSelector = slicer.util.findChild(cliw, "dwiFile")
     self.fiberBundleSelector = slicer.util.findChild(cliw, "tracts")
