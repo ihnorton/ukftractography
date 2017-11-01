@@ -13,7 +13,6 @@
 #include "ukf_types.h"
 #include "ukftractographylib_export.h"
 
-class ISignalData;
 class NrrdData;
 class vtkPolyData;
 class Tractography;
@@ -208,7 +207,7 @@ private:
   const std::string _output_file_with_second_tensor;
 
   /** Pointer to generic diffusion data */
-  ISignalData *_signal_data;
+  NrrdData *_signal_data;
 
   /** Switch for attaching the FA value to the fiber at each point of the tractography */
   const bool _record_fa;
