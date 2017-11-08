@@ -61,6 +61,10 @@ struct UKFSettings {
 */
 class UKFTRACTOGRAPHYLIB_EXPORT Tractography
 {
+
+// TEMP friend so it can be modified
+friend class vtkSlicerInteractiveUKFLogic;
+
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -142,6 +146,7 @@ public:
   void SetWriteBinary(bool wb) { this->_writeBinary = wb; }
   void SetWriteCompressed(bool wb) { this->_writeCompressed = wb; }
   void SetOutputPolyData(vtkPolyData* pd) { this->_outputPolyData = pd; }
+
 private:
   /**
    * Calculate six tensor coefficients by solving B * d = log(s), where d are
@@ -261,18 +266,18 @@ private:
   int _nPosFreeWater;
 
   // Parameters for the tractography
-  const ukfPrecisionType           _fa_min;
-  const ukfPrecisionType           _mean_signal_min;
-  const ukfPrecisionType           _seeding_threshold;
-  const int              _num_tensors;
-  const int              _seeds_per_voxel;
-  ukfPrecisionType                 _cos_theta_min;
-  ukfPrecisionType                 _cos_theta_max;
-  const bool             _is_full_model;
-  const bool             _free_water;
-  const ukfPrecisionType           _stepLength;
-  const int                 _steps_per_record;
-  const std::vector<int> _labels;
+  ukfPrecisionType  _fa_min;
+  ukfPrecisionType  _mean_signal_min;
+  ukfPrecisionType  _seeding_threshold;
+  int               _num_tensors;
+  int               _seeds_per_voxel;
+  ukfPrecisionType  _cos_theta_min;
+  ukfPrecisionType  _cos_theta_max;
+  bool              _is_full_model;
+  bool              _free_water;
+  ukfPrecisionType  _stepLength;
+  int               _steps_per_record;
+  std::vector<int>  _labels;
   stdVec_t _ext_seeds;
 
   bool _writeBinary;
