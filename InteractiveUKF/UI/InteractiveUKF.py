@@ -265,7 +265,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
   def on_stoppingThreshold(self, value): pass
   
   def on_numTensor(self):
-    bg = self.numTensor.children()[0]
+    bg = self.c_numTensors.children()[0]
     val = bg.checkedButton().text
     self.logic.set_numTensor(int(val))
     self.rerunSeeding()
