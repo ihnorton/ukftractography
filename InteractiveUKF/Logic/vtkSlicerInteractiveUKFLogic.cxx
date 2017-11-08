@@ -161,11 +161,11 @@ void vtkSlicerInteractiveUKFLogic
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerInteractiveUKFLogic
-::RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode* dwiNode,
-                    vtkMRMLModelNode* fbNode,
-                    vtkMRMLMarkupsFiducialNode* markupsNode,
-                    int pointId)
+void vtkSlicerInteractiveUKFLogic::RunFromSeedPoints
+      (vtkMRMLDiffusionWeightedVolumeNode* dwiNode,
+       vtkMRMLModelNode* fbNode,
+       vtkMRMLMarkupsFiducialNode* markupsNode)
+       // int pointId)
 {
   assert(fbNode->IsA("vtkMRMLFiberBundleNode"));
 
@@ -190,11 +190,10 @@ void vtkSlicerInteractiveUKFLogic
   RASxfmIJK->SetMatrix(RAStoIJK.GetPointer());
   stdVec_t seeds;
 
-  // TODO loop all points
-  //for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
+  for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
     {
     vec3_t pos_in, pos_out;
-    markupsNode->GetMarkupPoint(0,pointId,pos_in.data());
+    markupsNode->GetMarkupPoint(0, i,pos_in.data());
     RASxfmIJK->TransformPoint(pos_in.data(), pos_out.data());
     pos_out = vec3_t(pos_out[2], pos_out[1], pos_out[0]); // axis order for nrrd
     seeds.push_back(pos_out);
@@ -208,3 +207,43 @@ void vtkSlicerInteractiveUKFLogic
   pd->Modified();
   fbNode->Modified();
 }
+
+//---------------------------------------------------------------------------
+void vtkSlicerInteractiveUKFLogic::SetParameter(std::string param,
+                                                std::string value)
+{
+  /* Parameters for the tractography
+  const ukfPrecisionType           _fa_min;
+  const ukfPrecisionType           _mean_signal_min;
+  const ukfPrecisionType           _seeding_threshold;
+  const int              _num_tensors;
+  const int              _seeds_per_voxel;
+  ukfPrecisionType                 _cos_theta_min;
+  ukfPrecisionType                 _cos_theta_max;
+  const bool             _is_full_model;
+  const bool             _free_water;
+  const ukfPrecisionType           _stepLength;
+  const int                 _steps_per_record;
+  */
+
+  if (!tracto_blob)
+    throw std::logic_error("Missing Tractography object");
+
+  Tractography *b = tracto_blob;
+
+  if (param == "fa_min")
+    b->_fa_min = std::stod(value);
+  if (param == "mean_signal_min")
+    b->_mean_signal_min = std::stod(value);
+}
+
+void vtkSlicerInteractiveUKFLogic::set_seedsPerVoxel(double val)      { tracto_blob->_seeds_per_voxel = val; };
+void vtkSlicerInteractiveUKFLogic::set_stoppingFA(double val)         { tracto_blob->_fa_min = val; };
+void vtkSlicerInteractiveUKFLogic::set_seedingThreshold(double val)   { tracto_blob->_seeding_threshold = val; };
+void vtkSlicerInteractiveUKFLogic::set_stoppingThreshold(double val)  { tracto_blob->_mean_signal_min = val; };
+void vtkSlicerInteractiveUKFLogic::set_numTensor(size_t val)          { tracto_blob->_num_tensors = val; };
+void vtkSlicerInteractiveUKFLogic::set_stepLength(double val)         { tracto_blob->_stepLength = val; };
+void vtkSlicerInteractiveUKFLogic::set_Qm(double val)                 { /* TODO */ };
+void vtkSlicerInteractiveUKFLogic::set_recordLength(double val)
+  { tracto_blob->_steps_per_record = val/tracto_blob->_stepLength; };
+

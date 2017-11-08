@@ -4,6 +4,8 @@ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
 
+from slicer.util import findChild, findChildren
+
 #
 # InteractiveUKF
 #
@@ -45,6 +47,17 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
+  def __del__(self):
+    print("Called destructor")
+    self.c_seedsPerVoxel.disconnect('valueChanged(double)', self.on_seedsPerVoxel)
+    self.c_seedingThreshold.disconnect('valueChanged(double)', self.on_seedingThreshold)
+    self.c_stoppingFA.disconnect('valueChanged(double)', self.on_stoppingFA)
+    self.c_stoppingThreshold.disconnect('valueChanged(double)', self.on_stoppingThreshold)
+    self.c_numTensor.disconnect('valueChanged()', self.on_numTensor)
+    self.c_stepLength.disconnect('valueChanged(double)', self.on_stepLength)
+    self.c_Qm.disconnect('valueChanged(double)', self.on_Qm)
+    self.c_recordLength.disconnect('valueChanged(double)', self.on_recordLength)
+
 
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
@@ -82,18 +95,18 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
 
     # named selector widgets correspond to CLI argument name
     for name in ["labels", "seedsFile"]:
-      w = slicer.util.findChild(widget=cliw, name=name)
-      if w:
+      with It(slicer.util.findChild(widget=cliw, name=name)) as w:
         cliw.layout().removeWidget(w)
         w.hide()
+
+    with It(slicer.util.findChildren(cliw, text="Tensor Model (default)")[0]) as w:
+      w.collapsed = True
 
     #
     # Finished customizing
     ######################
 
-    # Change default output step length from 0.9 to 2.0
-    with slicer.util.findChild(cliw, name="recordLength") as w:
-      w.setValue(2)
+    ######################
 
     # get handles to important selectors
     self.dwiSelector = slicer.util.findChild(cliw, "dwiFile")
@@ -110,7 +123,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     
     # selector widget and frame
     self.markupSelectorFrame = qt.QFrame(self.parent)
-    self.markupSelectorFrame.setLayout(qt.QHBoxLayout())
+    self.markupSelectorFrame.setLayout(qt.QVBoxLayout())
     self.parent.layout().addWidget(self.markupSelectorFrame)
 
     self.markupSelectorLabel = qt.QLabel("Interactive markup node: ", self.markupSelectorFrame)
@@ -126,6 +139,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       w.showHidden = False
       w.showChildNodeTypes = False
       w.setMRMLScene(slicer.mrmlScene)
+      w.connect('currentNodeChanged(bool)', self.markupNodeSelected)
 
       self.markupSelectorFrame.layout().addWidget(w)
       self.markupSelector = w
@@ -146,9 +160,47 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.interactFrame.layout().addWidget(self.enableCBFrame)
     self.interactFrame.layout().addStretch(0)
 
+    # Move options frame to interactor 
+    with It(slicer.util.findChildren(cliw, text="Tractography Options")[0]) as w:
+      self.tractOpts = w
+      cliw.layout().removeWidget(w)
+      self.markupSelectorFrame.layout().addWidget(w)
+
+      self.c_seedsPerVoxel = findChild(w, "seedsPerVoxel")
+      self.c_seedsPerVoxel.connect('valueChanged(double)', self.on_seedsPerVoxel)
+      
+      self.c_seedingThreshold = findChild(w, "seedingThreshold")
+      self.c_seedingThreshold.connect('valueChanged(double)', self.on_seedingThreshold)
+
+      self.c_stoppingFA = findChild(w, "stoppingFA")
+      self.c_stoppingFA.connect('valueChanged(double)', self.on_stoppingFA)
+      
+      self.c_stoppingThreshold = findChild(w, "stoppingThreshold")
+      self.c_stoppingThreshold.connect('valueChanged(double)', self.on_stoppingThreshold)
+
+      # TODO numThread?
+      self.c_numTensor = findChild(w, "numTensor")
+      self.c_numTensor.connect('valueChanged()', self.on_numTensor)
+
+      self.c_stepLength = findChild(w, "stepLength")
+      self.c_stepLength.connect('valueChanged(double)', self.on_stepLength)
+
+      self.c_Qm = findChild(w, "Qm")
+      self.c_Qm.connect('valueChanged(double)', self.on_Qm)
+
+      self.c_recordLength = findChild(w, "recordLength")
+      self.c_recordLength.setValue(2)
+      self.c_recordLength.connect('valueChanged(double)', self.on_recordLength)
+
+      # TODO maxTract, NMSE    
+
     self.tabFrame.connect('currentChanged(int)', self.onTabChanged)
     self.enableSeedingCB.connect('stateChanged(int)', self.onSeedingCBChanged)
     self.logic = slicer.vtkSlicerInteractiveUKFLogic()
+
+  def markupNodeSelected(self, state):
+    self.tractOpts.enabled = state
+    self.enableSeedingCB.enabled = state
 
   def onTabChanged(self, index):
     print "onTabChanged"
@@ -167,29 +219,70 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     cliNode = self.cliWidget.currentCommandLineModuleNode()
    
     self.cliWidget.apply(1) # 1: run synchronously
-    self.interactFrame.enabled = 1
+    self.interactFrame.enabled = True
+    self.tractOpts.enabled = False
+    self.enableSeedingCB.enabled = False 
     self.logic.SetInputVolumes(dwi, mask, None)
 
   def onMarkupsChanged(self, markupNode, event):
-    self.runSeeding(markupNode, 0)
+    self.runSeeding(markupNode)
 
   def onSeedingCBChanged(self, state):
     markups = self.markupSelector.currentNode()
     if state == 0 or markups == None:
-      markups.RemoveObserver(self.onMarkupsChanged)
+      markups.RemoveObservers(slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
+                              self.onMarkupsChanged)
       return
 
     markups.AddObserver(slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
                         self.onMarkupsChanged)
 
-  def runSeeding(self, markupNode, pointId):
+  def runSeeding(self, markupNode):
     dwi = self.dwiSelector.currentNode()
     fbnode = self.fiberBundleSelector.currentNode()
 
     if markupNode == None:
       return
 
-    self.logic.RunFromSeedPoints(dwi, fbnode, markupNode, pointId)
+    self.logic.RunFromSeedPoints(dwi, fbnode, markupNode)
+
+  def rerunSeeding(self):
+    markups = self.markupSelector.currentNode()
+    self.runSeeding(markups)
+
+  def on_seedsPerVoxel(self, value):
+    self.logic.set_seedsPerVoxel(value)
+    self.rerunSeeding()
+
+  def on_seedingThreshold(self, value):
+    self.logic.set_seedingThreshold(value)
+    self.rerunSeeding()
+
+  def on_stoppingFA(self, value):
+    self.logic.set_stoppingFA(value)
+    self.rerunSeeding()
+
+  def on_stoppingThreshold(self, value): pass
+  
+  def on_numTensor(self):
+    bg = self.numTensor.children()[0]
+    val = bg.checkedButton().text
+    self.logic.set_numTensor(int(val))
+    self.rerunSeeding()
+
+  
+  def on_stepLength(self, value): pass
+  def on_Qm(self, value): pass
+  def on_recordLength(self,value): pass
+
+#on_seedsPerVoxel
+#on_seedingThreshold
+#on_stoppingThreshold
+#on_numTensor
+#on_stepLength
+#on_Qm
+#on_recordLength
+
 
 
 #

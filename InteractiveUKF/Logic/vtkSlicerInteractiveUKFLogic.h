@@ -54,8 +54,19 @@ public:
                        vtkMRMLScalarVolumeNode*);
   void RunFromSeedPoints(vtkMRMLDiffusionWeightedVolumeNode*,
                          vtkMRMLModelNode*,
-                         vtkMRMLMarkupsFiducialNode*,
-                         int pointId);
+                         vtkMRMLMarkupsFiducialNode*);
+                         // int pointId);
+  void SetParameter(std::string param, std::string value);
+
+  void set_seedsPerVoxel(double val);
+  void set_stoppingFA(double val);
+  void set_seedingThreshold(double val);
+  void set_stoppingThreshold(double val);
+  void set_numTensor(size_t val);
+  void set_stepLength(double val);
+  void set_Qm(double val);
+  void set_recordLength(double val);
+
 
 protected:
   vtkSlicerInteractiveUKFLogic();
