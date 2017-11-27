@@ -48,16 +48,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
   def __del__(self):
-    print("Called destructor")
-    self.c_seedsPerVoxel.disconnect('valueChanged(double)', self.on_seedsPerVoxel)
-    self.c_seedingThreshold.disconnect('valueChanged(double)', self.on_seedingThreshold)
-    self.c_stoppingFA.disconnect('valueChanged(double)', self.on_stoppingFA)
-    self.c_stoppingThreshold.disconnect('valueChanged(double)', self.on_stoppingThreshold)
-    self.c_numTensor.disconnect('valueChanged()', self.on_numTensor)
-    self.c_stepLength.disconnect('valueChanged(double)', self.on_stepLength)
-    self.c_Qm.disconnect('valueChanged(double)', self.on_Qm)
-    self.c_recordLength.disconnect('valueChanged(double)', self.on_recordLength)
-
+    self.unsetConnections()
 
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
@@ -86,7 +77,8 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     # labels and other anonymous UI elements
     cliw = self.cliWidget
     for name in ["Apply", "AutoRun", "Restore Defaults", "Cancel", "Parameter set:",
-                 "Input Label Map", "ROI label to use for seeding"]:
+                 "Input Label Map", "ROI label to use for seeding",
+                 "Signal Parameters (Expert Only)", "Not Used: Debug/Develop Only"]:
       w = slicer.util.findChildren(widget=cliw, text=name)
       if len(w) > 0:
         w = w[0]
@@ -145,9 +137,8 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       self.markupSelector = w
 
     # enable checkbox
-    self.enableCBFrame = qt.QFrame(self.parent)
+    self.enableCBFrame = qt.QFrame(self.markupSelectorFrame)
     self.enableCBFrame.setLayout(qt.QHBoxLayout())
-    self.parent.layout().addWidget(self.enableCBFrame)
     
     self.enableSeedingCB = qt.QCheckBox()
     self.enableCBFrame.layout().addWidget(self.enableSeedingCB)
@@ -156,73 +147,112 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.enableCBFrame.layout().addWidget(self.enableSeedingCBLabel)
     self.enableCBFrame.layout().addStretch(0)
 
+    self.markupSelectorFrame.layout().addWidget(self.enableCBFrame)
     self.interactFrame.layout().addWidget(self.markupSelectorFrame)
-    self.interactFrame.layout().addWidget(self.enableCBFrame)
-    self.interactFrame.layout().addStretch(0)
 
-    # Move options frame to interactor 
+    self.optsFrame = qt.QFrame(self.parent)
+    self.optsFrame.setLayout(qt.QVBoxLayout())
+    self.interactFrame.layout().addWidget(self.optsFrame)
+
+    # Move seeding options frame to interactor 
     with It(slicer.util.findChildren(cliw, text="Tractography Options")[0]) as w:
       self.tractOpts = w
       cliw.layout().removeWidget(w)
-      self.markupSelectorFrame.layout().addWidget(w)
+      self.optsFrame.layout().addWidget(w)
+      w.collapsed = True
 
       self.c_seedsPerVoxel = findChild(w, "seedsPerVoxel")
-      self.c_seedsPerVoxel.connect('valueChanged(double)', self.on_seedsPerVoxel)
-      
       self.c_seedingThreshold = findChild(w, "seedingThreshold")
-      self.c_seedingThreshold.connect('valueChanged(double)', self.on_seedingThreshold)
-
       self.c_stoppingFA = findChild(w, "stoppingFA")
-      self.c_stoppingFA.connect('valueChanged(double)', self.on_stoppingFA)
-      
       self.c_stoppingThreshold = findChild(w, "stoppingThreshold")
-      self.c_stoppingThreshold.connect('valueChanged(double)', self.on_stoppingThreshold)
 
-      # TODO numThread?
       self.c_numTensor = findChild(w, "numTensor")
-      self.c_numTensor.connect('valueChanged()', self.on_numTensor)
-
       self.c_stepLength = findChild(w, "stepLength")
-      self.c_stepLength.connect('valueChanged(double)', self.on_stepLength)
-
       self.c_Qm = findChild(w, "Qm")
-      self.c_Qm.connect('valueChanged(double)', self.on_Qm)
-
       self.c_recordLength = findChild(w, "recordLength")
       self.c_recordLength.setValue(2)
-      self.c_recordLength.connect('valueChanged(double)', self.on_recordLength)
-
+      # TODO numThread?
       # TODO maxTract, NMSE    
+
+    # Move tensor options frame to interactor 
+    with It(slicer.util.findChildren(cliw, text="Tensor Model (default)")[0]) as w:
+      self.tractTensorOpts = w
+      cliw.layout().removeWidget(w)
+      self.optsFrame.layout().addWidget(w)
+
+    # Move NODDI options frame to interactor 
+    with It(slicer.util.findChildren(cliw, text="NODDI Model")[0]) as w:
+      self.noddiOpts = w
+      cliw.layout().removeWidget(w)
+      self.optsFrame.layout().addWidget(w)
 
     self.tabFrame.connect('currentChanged(int)', self.onTabChanged)
     self.enableSeedingCB.connect('stateChanged(int)', self.onSeedingCBChanged)
     self.logic = slicer.vtkSlicerInteractiveUKFLogic()
 
+    # This needs to be last so that all widgets are pushed to top
+    self.interactFrame.layout().addStretch(0) 
+
+  def enableInteraction(self):
+    self.interactFrame.enabled = True
+    self.optsFrame.enabled = False
+    self.enableSeedingCB.enabled = False 
+
+    self.c_recordLength.connect('valueChanged(double)', self.on_recordLength)
+    self.c_Qm.connect('valueChanged(double)', self.on_Qm)
+    self.c_seedsPerVoxel.connect('valueChanged(double)', self.on_seedsPerVoxel)
+    self.c_seedingThreshold.connect('valueChanged(double)', self.on_seedingThreshold)
+    self.c_stoppingFA.connect('valueChanged(double)', self.on_stoppingFA)
+    self.c_stoppingThreshold.connect('valueChanged(double)', self.on_stoppingThreshold)
+    self.c_numTensor.connect('valueChanged()', self.on_numTensor)
+    self.c_stepLength.connect('valueChanged(double)', self.on_stepLength)
+
+  def disableInteraction(self):
+    self.interactFrame.enabled = False
+    self.optsFrame.enabled = False
+    self.enableSeedingCB.enabled = False 
+
+    self.c_seedsPerVoxel.disconnect('valueChanged(double)', self.on_seedsPerVoxel)
+    self.c_seedingThreshold.disconnect('valueChanged(double)', self.on_seedingThreshold)
+    self.c_stoppingFA.disconnect('valueChanged(double)', self.on_stoppingFA)
+    self.c_stoppingThreshold.disconnect('valueChanged(double)', self.on_stoppingThreshold)
+    self.c_numTensor.disconnect('valueChanged()', self.on_numTensor)
+    self.c_stepLength.disconnect('valueChanged(double)', self.on_stepLength)
+    self.c_Qm.disconnect('valueChanged(double)', self.on_Qm)
+    self.c_recordLength.disconnect('valueChanged(double)', self.on_recordLength)
+
   def markupNodeSelected(self, state):
-    self.tractOpts.enabled = state
+    self.optsFrame.enabled = state
     self.enableSeedingCB.enabled = state
 
   def onTabChanged(self, index):
-    print "onTabChanged"
-    if index != 1:
+    # I/O selector tab
+    if index == 0:
+      self.disableInteraction()
       return
-
-    dwi = self.dwiSelector.currentNode()
-    fbnode = self.fiberBundleSelector.currentNode()
-    mask = self.maskSelector.currentNode()
+    
+    # interaction tab
+    elif index == 1:
+      # run CLI widget to set inputs and calculate averaged volume
+      self.cliWidget.apply(1) # 1: run synchronously
+      
+      dwi = self.dwiSelector.currentNode()
+      fbnode = self.fiberBundleSelector.currentNode()
+      mask = self.maskSelector.currentNode()
+      markups = self.markupSelector.currentNode()
   
-    # disable interaction and return if no nodes selected
-    if (dwi == None or fbnode == None):
-      self.interactFrame.enabled = 0
-      return
+      # disable interaction and return if no nodes selected
+      if (dwi == None or fbnode == None):
+        self.interactFrame.enabled = 0
+        return
 
-    cliNode = self.cliWidget.currentCommandLineModuleNode()
-   
-    self.cliWidget.apply(1) # 1: run synchronously
-    self.interactFrame.enabled = True
-    self.tractOpts.enabled = False
-    self.enableSeedingCB.enabled = False 
-    self.logic.SetInputVolumes(dwi, mask, None)
+      self.logic.SetInputVolumes(dwi, mask, None)
+      self.enableInteraction()
+      
+      if (markups != None):
+        self.enableSeedingCB.enabled = True
+    else:
+      raise("Unhandled tab!")
 
   def onMarkupsChanged(self, markupNode, event):
     self.runSeeding(markupNode)
@@ -241,13 +271,15 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     dwi = self.dwiSelector.currentNode()
     fbnode = self.fiberBundleSelector.currentNode()
 
-    if markupNode == None:
+    if markupNode == None or fbnode == None:
+      raise("No markup node selected in InteractiveUKF.py:runSeeding(...)")
       return
 
     self.logic.RunFromSeedPoints(dwi, fbnode, markupNode)
 
   def rerunSeeding(self):
     markups = self.markupSelector.currentNode()
+    # TODO safety check 
     self.runSeeding(markups)
 
   def on_seedsPerVoxel(self, value):
@@ -259,10 +291,14 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.rerunSeeding()
 
   def on_stoppingFA(self, value):
+    if not self.logic: return
     self.logic.set_stoppingFA(value)
     self.rerunSeeding()
 
-  def on_stoppingThreshold(self, value): pass
+  def on_stoppingThreshold(self, value):
+    if not self.logic: return
+    self.logic.set_stoppingThreshold(value)
+    self.rerunSeeding()
   
   def on_numTensor(self):
     bg = self.c_numTensors.children()[0]
@@ -271,9 +307,21 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.rerunSeeding()
 
   
-  def on_stepLength(self, value): pass
-  def on_Qm(self, value): pass
-  def on_recordLength(self,value): pass
+  def on_stepLength(self, value):
+    if not self.logic: return
+    self.logic.set_stoppingThreshold(value)
+    self.rerunSeeding()
+ 
+  def on_Qm(self, value):
+    if not self.logic: return
+    self.logic.set_Qm(value)
+    self.rerunSeeding()
+ 
+  def on_recordLength(self,value):
+    if not self.logic: return
+    self.logic.set_recordLength(value)
+    self.rerunSeeding()
+ 
 
 #on_seedsPerVoxel
 #on_seedingThreshold

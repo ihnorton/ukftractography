@@ -56,7 +56,6 @@ public:
                          vtkMRMLModelNode*,
                          vtkMRMLMarkupsFiducialNode*);
                          // int pointId);
-  void SetParameter(std::string param, std::string value);
 
   void set_seedsPerVoxel(double val);
   void set_stoppingFA(double val);

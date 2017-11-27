@@ -208,35 +208,6 @@ void vtkSlicerInteractiveUKFLogic::RunFromSeedPoints
   fbNode->Modified();
 }
 
-//---------------------------------------------------------------------------
-void vtkSlicerInteractiveUKFLogic::SetParameter(std::string param,
-                                                std::string value)
-{
-  /* Parameters for the tractography
-  const ukfPrecisionType           _fa_min;
-  const ukfPrecisionType           _mean_signal_min;
-  const ukfPrecisionType           _seeding_threshold;
-  const int              _num_tensors;
-  const int              _seeds_per_voxel;
-  ukfPrecisionType                 _cos_theta_min;
-  ukfPrecisionType                 _cos_theta_max;
-  const bool             _is_full_model;
-  const bool             _free_water;
-  const ukfPrecisionType           _stepLength;
-  const int                 _steps_per_record;
-  */
-
-  if (!tracto_blob)
-    throw std::logic_error("Missing Tractography object");
-
-  Tractography *b = tracto_blob;
-
-  if (param == "fa_min")
-    b->_fa_min = std::stod(value);
-  if (param == "mean_signal_min")
-    b->_mean_signal_min = std::stod(value);
-}
-
 void vtkSlicerInteractiveUKFLogic::set_seedsPerVoxel(double val)      { tracto_blob->_seeds_per_voxel = val; };
 void vtkSlicerInteractiveUKFLogic::set_stoppingFA(double val)         { tracto_blob->_fa_min = val; };
 void vtkSlicerInteractiveUKFLogic::set_seedingThreshold(double val)   { tracto_blob->_seeding_threshold = val; };
