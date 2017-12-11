@@ -185,6 +185,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
       self.noddiOpts = w
       cliw.layout().removeWidget(w)
       self.optsFrame.layout().addWidget(w)
+      self.c_noddi = findChild(w, "noddi")
 
     self.tabFrame.connect('currentChanged(int)', self.onTabChanged)
     self.enableSeedingCB.connect('stateChanged(int)', self.onSeedingCBChanged)
@@ -206,6 +207,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.c_stoppingThreshold.connect('valueChanged(double)', self.on_stoppingThreshold)
     self.c_numTensor.connect('valueChanged()', self.on_numTensor)
     self.c_stepLength.connect('valueChanged(double)', self.on_stepLength)
+    self.c_noddi.connect('stateChanged(int)', self.on_noddi)
 
   def disableInteraction(self):
     self.interactFrame.enabled = False
@@ -220,6 +222,7 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.c_stepLength.disconnect('valueChanged(double)', self.on_stepLength)
     self.c_Qm.disconnect('valueChanged(double)', self.on_Qm)
     self.c_recordLength.disconnect('valueChanged(double)', self.on_recordLength)
+    self.c_noddi.disconnect('stateChanged(int)', self.on_noddi)
 
   def markupNodeSelected(self, state):
     self.optsFrame.enabled = state
@@ -321,7 +324,14 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     if not self.logic: return
     self.logic.set_recordLength(value)
     self.rerunSeeding()
- 
+
+  def on_noddi(self,value):
+    if not self.logic: return
+    if value == 1:
+      self.logic.set_noddi(True)
+    else:
+      self.logic.set_noddi(False)
+    self.rerunSeeding()
 
 #on_seedsPerVoxel
 #on_seedingThreshold

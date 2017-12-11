@@ -65,7 +65,7 @@ public:
   void set_stepLength(double val);
   void set_Qm(double val);
   void set_recordLength(double val);
-
+  void set_noddi(bool val);
 
 protected:
   vtkSlicerInteractiveUKFLogic();

@@ -218,3 +218,5 @@ void vtkSlicerInteractiveUKFLogic::set_Qm(double val)                 { /* TODO 
 void vtkSlicerInteractiveUKFLogic::set_recordLength(double val)
   { tracto_blob->_steps_per_record = val/tracto_blob->_stepLength; };
 
+void vtkSlicerInteractiveUKFLogic::set_noddi(bool val)                { tracto_blob->_noddi = val; }
+
