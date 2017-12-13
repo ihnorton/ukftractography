@@ -190,10 +190,10 @@ void vtkSlicerInteractiveUKFLogic::RunFromSeedPoints
   RASxfmIJK->SetMatrix(RAStoIJK.GetPointer());
   stdVec_t seeds;
 
-  for (size_t i = 0; i < markupsNode->GetNumberOfMarkups(); i++)
+  for (size_t i = 0; i < markupsNode->GetNumberOfFiducials(); i++)
     {
     vec3_t pos_in, pos_out;
-    markupsNode->GetMarkupPoint(0, i,pos_in.data());
+    markupsNode->GetNthFiducialPosition(i, pos_in.data());
     RASxfmIJK->TransformPoint(pos_in.data(), pos_out.data());
     pos_out = vec3_t(pos_out[2], pos_out[1], pos_out[0]); // axis order for nrrd
     seeds.push_back(pos_out);

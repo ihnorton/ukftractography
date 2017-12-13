@@ -309,7 +309,6 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
     self.logic.set_numTensor(int(val))
     self.rerunSeeding()
 
-  
   def on_stepLength(self, value):
     if not self.logic: return
     self.logic.set_stoppingThreshold(value)
@@ -327,7 +326,8 @@ class InteractiveUKFWidget(ScriptedLoadableModuleWidget):
 
   def on_noddi(self,value):
     if not self.logic: return
-    if value == 1:
+    print("on_noddi: ", value)
+    if value == 2: # Qt::Checked
       self.logic.set_noddi(True)
     else:
       self.logic.set_noddi(False)
