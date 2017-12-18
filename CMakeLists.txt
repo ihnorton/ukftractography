@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
+set(PRIMARY_PROJECT_NAME UKFTractography)
 #-----------------------------------------------------------------------------
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 include(ExternalProject)
@@ -16,56 +17,24 @@ if(APPLE)
     )
 endif()
 
-set(PRIMARY_PROJECT_NAME UKFTractography)
-
-## NOTE THERE SHOULD BE NO PROJECT STATEMENT HERE!
-## This file acts as a simple switch to initiate
-## two completely independant CMake build environments.
-
-#-----------------------------------------------------------------------------
-# Superbuild Option - Enabled by default
-#                   Phase I:  ${PRIMARY_PROJECT_NAME}_SUPERBUILD is set to ON, and the
-#                             supporting packages defined in "SuperBuild.cmake"
-#                             are built.  The last package in "SuperBuild.cmake"
-#                             to be built is a recursive call to this
-#                             file with ${PRIMARY_PROJECT_NAME}_SUPERBUILD explicitly
-#                             set to "OFF" to initiate Phase II
-#
-#                   Phase II: Build the ${PRIMARY_PROJECT_NAME}, referencing the support
-#                             packages built in Phase I.
 #-----------------------------------------------------------------------------
 
-#-----------------------------------------------------------------------------
-set(EXTENSION_NAME  UKFTractography)
-set(EXTENSION_HOMEPAGE "http://www.nitrc.org/plugins/mwiki/index.php/ukftractography:MainPage")
-set(EXTENSION_CATEGORY "Diffusion.Tractography")
-set(EXTENSION_CONTRIBUTORS "Yogesh Rathi, Stefan Lienhard, Yinpeng Li, Martin Styner, Ipek Oguz, Yundi Shi, Christian Baumgartner, Ryan Eckbo, Kent Williams, Hans Johnson, Peter Savadjiev, Carl-Fredrik Westin")
-set(EXTENSION_MAJOR_VERSION 1)
-set(EXTENSION_MINOR_VERSION 2)
-set(EXTENSION_PATCH_VERSION 0)
-set(EXTENSION_STATUS "Alpha")
-set(EXTENSION_DEPENDS "NA")
-set(EXTENSION_DESCRIPTION "This module traces fibers in a DWI Volume using the multiple tensor unscented Kalman Filter methology. ")
-set(EXTENSION_LICENSE_SHORT_DESCRIPTION "Quadratic Programming Library QuadProg++ has LGPL or GPL")
-set(EXTENSION_ICONURL "https://github.com/pnlbwh/ukftractography/raw/master/UKF_icon.png")
-set(EXTENSION_SCREENSHOTURLS "http://wiki.slicer.org/slicerWiki/images/a/ab/Slicer-r19441-CLIExtensionTemplate-screenshot.png http://wiki.slicer.org/slicerWiki/images/1/1e/Slicer-r19441-CLIExtensionTemplate-screenshot-2.png")
-
-#-----------------------------------------------------------------------------
 option(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION "Build ${PRIMARY_PROJECT_NAME} as Slicer extension." OFF)
 
 if (DEFINED Slicer_DIR)
   set(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION ON)
 endif()
 
-if(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION)
-  set(default_superbuild_value OFF)
-else()
-  set(default_superbuild_value ON)
-endif()
-
 #-----------------------------------------------------------------------------
 option(${PRIMARY_PROJECT_NAME}_SUPERBUILD "Build ${PRIMARY_PROJECT_NAME} and the projects it depends on via SuperBuild.cmake." ${default_superbuild_value})
 mark_as_advanced(${PRIMARY_PROJECT_NAME}_SUPERBUILD)
+
+#-----------------------------------------------------------------------------
+if(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION)
+  include(SlicerExtension.cmake)
+else()
+  set(default_superbuild_value ON)
+endif()
 
 #-----------------------------------------------------------------------------
 # Required by Slicer extension build system for reasons. See
