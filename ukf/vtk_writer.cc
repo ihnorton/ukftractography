@@ -501,7 +501,7 @@ VtkWriter
     delete [] tmpArray;
     }
 
-  if(fibers[0].covariance.size() > 0)
+  if(false) // fibers[0].covariance.size() > 0)
     {
     int state_dim = fibers[0].state[0].size();
 

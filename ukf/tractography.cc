@@ -1838,6 +1838,7 @@ void Tractography::Record(const vec3_t& x, const ukfPrecisionType fa, const ukfP
 
   if( _record_trace || _record_kappa)
     {
+    // TODO use a proper constant for pi?
     fiber.trace.push_back(2*(atan(1/trace)/3.14));
     if( _num_tensors >= 2 )
       {
@@ -1917,13 +1918,13 @@ void Tractography::Record(const vec3_t& x, const ukfPrecisionType fa, const ukfP
       store_state[11] = dir[1];
       store_state[12] = dir[2];
       }
-    fiber.state.push_back(store_state);
+    //fiber.state.push_back(store_state);
 
     }
   else
     {
     // Normal state
-    fiber.state.push_back(state);
+    //fiber.state.push_back(state);
     }
 
   if( _record_cov )
@@ -1938,7 +1939,7 @@ void Tractography::FiberReserve(UKFFiber& fiber, int fiber_size)
   // Reserving space for fiber
   fiber.position.reserve(fiber_size);
   fiber.norm.reserve(fiber_size);
-  fiber.state.reserve(fiber_size);
+  //fiber.state.reserve(fiber_size);
   if( _record_nmse )
     {
     fiber.normMSE.reserve(fiber_size);
