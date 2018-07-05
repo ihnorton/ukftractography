@@ -1,11 +1,9 @@
-include(${CMAKE_CURRENT_LIST_DIR}/Common.cmake)
-
 #-----------------------------------------------------------------------------
+# CAREFUL: SlicerConfig.cmake currently unsets CMAKE_CXX_FLAGS
 if(${PRIMARY_PROJECT_NAME}_BUILD_SLICER_EXTENSION)
   find_package(Slicer REQUIRED)
   include(${Slicer_USE_FILE})
 endif()
-
 #-----------------------------------------------------------------------------
 find_package(SlicerExecutionModel REQUIRED)
 include(${SlicerExecutionModel_USE_FILE})
@@ -74,6 +72,9 @@ else()
   find_library(TEEM_LIB teem PATHS ${CMAKE_CURRENT_BINARY_DIR}/../lib)
   message("TEEM_LIB:${TEEM_LIB}")
 endif()
+
+#-----------------------------------------------------------------------------
+include(${CMAKE_CURRENT_LIST_DIR}/Common.cmake) #do this after package config, because Slicer unsets the flags
 
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/common)
