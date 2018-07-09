@@ -128,53 +128,53 @@ void Tractography::UpdateFilterModelType()
     delete this->_model; // TODO smartpointer
   }
 
-  Tractography::model_type _filter_model_type = Tractography::_1T;
+  this->_filter_model_type = Tractography::_1T;
   bool simpleTensorModel = !(_is_full_model);
 
   if (_noddi){
     // TODO refactor this is terrible
     if (_num_tensors == 1){
       std::cout << "Using NODDI 1-Fiber model." << std::endl;
-      _filter_model_type = Tractography::_1T_FW; // same vtk writer can be used
+      this->_filter_model_type = Tractography::_1T_FW; // same vtk writer can be used
     } else if (_num_tensors == 2){
       std::cout << "Using NODDI 2-Fiber model." << std::endl;
-      _filter_model_type = Tractography::_2T_FW; // same vtk writer can be used
+      this->_filter_model_type = Tractography::_2T_FW; // same vtk writer can be used
     }
   } else if (_num_tensors == 1) {
     if (simpleTensorModel && !_free_water) {
       std::cout << "Using 1-tensor simple model." << std::endl;
-      _filter_model_type = Tractography::_1T;
+      this->_filter_model_type = Tractography::_1T;
     } else if (simpleTensorModel && _free_water) {
       std::cout << "Using 1-tensor simple model with free water estimation." << std::endl;
-      _filter_model_type = Tractography::_1T_FW;
+      this->_filter_model_type = Tractography::_1T_FW;
     } else if (!simpleTensorModel && !_free_water) {
       std::cout << "Using 1-tensor full model." << std::endl;
-      _filter_model_type = Tractography::_1T_FULL;
+      this->_filter_model_type = Tractography::_1T_FULL;
     } else if (!simpleTensorModel && _free_water) {
       std::cout << "Using 1-tensor full model with free water estimation." << std::endl;
-      _filter_model_type = Tractography::_1T_FW_FULL;
+      this->_filter_model_type = Tractography::_1T_FW_FULL;
     }
   } else if (_num_tensors == 2) {
     if (simpleTensorModel && !_free_water) {
       std::cout << "Using 2-tensor simple model." << std::endl;
-      _filter_model_type = Tractography::_2T;
+      this->_filter_model_type = Tractography::_2T;
     } else if (simpleTensorModel && _free_water) {
       std::cout << "Using 2-tensor simple model with free water estimation." << std::endl;
-      _filter_model_type = Tractography::_2T_FW;
+      this->_filter_model_type = Tractography::_2T_FW;
     } else if (!simpleTensorModel && !_free_water) {
       std::cout << "Using 2-tensor full model." << std::endl;
-      _filter_model_type = Tractography::_2T_FULL;
+      this->_filter_model_type = Tractography::_2T_FULL;
     } else if (!simpleTensorModel && _free_water) {
       std::cout << "Using 2-tensor full model with free water estimation." << std::endl;
-      _filter_model_type = Tractography::_2T_FW_FULL;
+      this->_filter_model_type = Tractography::_2T_FW_FULL;
     }
   } else if (_num_tensors == 3) {
     if (simpleTensorModel) {
       std::cout << "Using 3-tensor simple model." << std::endl;
-      _filter_model_type = Tractography::_3T;
+      this->_filter_model_type = Tractography::_3T;
     } else {
       std::cout << "Using 3-tensor full model." << std::endl;
-      _filter_model_type = Tractography::_3T_FULL;
+      this->_filter_model_type = Tractography::_3T_FULL;
     }
   }
 
@@ -263,40 +263,40 @@ void Tractography::UpdateFilterModelType()
 
 
   // TODO refactor this NODDI switch
-  if (_filter_model_type == _1T_FW && this->_noddi && this->_num_tensors == 1) {
+  if (this->_filter_model_type == _1T_FW && this->_noddi && this->_num_tensors == 1) {
     _model = new NODDI1F(Qm, Qkappa, Qvic, Rs, this->weights_on_tensors, this->_noddi);
   }
-  else if (_filter_model_type == _2T_FW && this->_noddi && this->_num_tensors == 2) {
+  else if (this->_filter_model_type == _2T_FW && this->_noddi && this->_num_tensors == 2) {
     _model = new NODDI2F(Qm, Qkappa, Qvic, Rs, this->weights_on_tensors, this->_noddi);
   }
-  else if (_filter_model_type == _1T) {
+  else if (this->_filter_model_type == _1T) {
     _model = new Simple1T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _1T_FW) {
+  else if (this->_filter_model_type == _1T_FW) {
     _model = new Simple1T_FW(Qm, Ql, Qw, Rs, this->weights_on_tensors, this->_free_water, D_ISO);
   }
-  else if (_filter_model_type == _1T_FULL) {
+  else if (this->_filter_model_type == _1T_FULL) {
     _model = new Full1T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _1T_FW_FULL) {
+  else if (this->_filter_model_type == _1T_FW_FULL) {
     _model = new Full1T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _2T) {
+  else if (this->_filter_model_type == _2T) {
     _model = new Simple2T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _2T_FW) {
+  else if (this->_filter_model_type == _2T_FW) {
     _model = new Simple2T_FW(Qm, Ql, Qw, Rs, this->weights_on_tensors, this->_free_water, D_ISO);
   }
-  else if (_filter_model_type == _2T_FULL) {
+  else if (this->_filter_model_type == _2T_FULL) {
     _model = new Full2T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _2T_FW_FULL) {
+  else if (this->_filter_model_type == _2T_FW_FULL) {
     _model = new Full2T_FW(Qm, Ql, Qw, Rs, this->weights_on_tensors, this->_free_water, D_ISO);
   }
-  else if (_filter_model_type == _3T) {
+  else if (this->_filter_model_type == _3T) {
     _model = new Simple3T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
-  else if (_filter_model_type == _3T_FULL) {
+  else if (this->_filter_model_type == _3T_FULL) {
     _model = new Full3T(Qm, Ql, Rs, this->weights_on_tensors, this->_free_water);
   }
   else {
